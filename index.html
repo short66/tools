@@ -2,442 +2,912 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>数字生肖统计</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>挑码助手</title>
   <style>
-    /* 自定义暗色滚动条 */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
-    ::-webkit-scrollbar-track {
-      background: #1e1e24;
+    html {
+      background-color: #eaedf1;
     }
-    ::-webkit-scrollbar-thumb {
-      background: #3f3f46;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f7f9fa;
+      color: #333;
+      padding-bottom: 65px;
+      max-width: 640px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.06);
+    }
+
+    /* 顶部导航 */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      background-color: #00b07c;
+      color: #fff;
+      padding: 0 12px;
+      font-size: 17px;
+      font-weight: bold;
+    }
+    .header .back-btn {
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .header .save-btn {
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      padding: 3px 8px;
       border-radius: 4px;
+      cursor: pointer;
+      font-weight: normal;
     }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #52525b;
+
+    /* 统计结果面板 (完全贴合原版排版) */
+    .stats-panel {
+      background: #ffffff;
+      padding: 10px 14px;
+      border-bottom: 1px solid #eef0f2;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 60px;
+      margin: 10px;
+    }
+    .stat-row {
+      margin-bottom: 8px;
+    }
+    .stat-row:last-child {
+      margin-bottom: 0;
+    }
+    .stat-title {
+      font-weight: bold;
+      color: #222;
+      font-size: 14px;
+    }
+    .stat-nums {
+      color: #333;
+      margin-top: 2px;
+      word-break: break-all;
+      letter-spacing: 0.3px;
+    }
+
+    /* 控制操作栏 */
+    .action-bar {
+      display: flex;
+      gap: 6px;
+      padding: 8px 10px;
+      background: #f7f9fa;
+    }
+    .btn-act {
+      flex: 1;
+      height: 38px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-act-green {
+      background-color: #00b07c;
+      color: #ffffff;
+    }
+    .btn-act-outline {
+      background-color: #ffffff;
+      color: #00b07c;
+      border: 1px solid #00b07c;
+    }
+    .btn-act.kill-active {
+      background-color: #e53935;
+      color: #fff;
+    }
+
+    /* 选项矩阵网格 */
+    .filter-wrap {
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .filter-grid {
+      display: grid;
+      gap: 6px;
+    }
+    .col-4 { grid-template-columns: repeat(4, 1fr); }
+    .col-5 { grid-template-columns: repeat(5, 1fr); }
+    .col-6 { grid-template-columns: repeat(6, 1fr); }
+
+    
+    .opt-btn.placeholder {
+      visibility: hidden;
+      pointer-events: none;
+      border: none;
+      background: transparent;
+    }
+
+    .opt-btn {
+      height: 34px;
+      border: 1px solid #79c9b5;
+      background: linear-gradient(180deg, #f3fbfa 0%, #e8f7f4 100%);
+      color: #333;
+      border-radius: 5px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    /* 选中后的实心深绿色 */
+    .opt-btn.active {
+      background: #00b07c !important;
+      color: #ffffff !important;
+      border-color: #00b07c !important;
+      font-weight: 500;
+    }
+
+    /* 悬浮辅助按钮 (回退/刷新/置顶) */
+    .float-actions {
+      position: fixed;
+      right: 12px;
+      bottom: 68px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 99;
+    }
+    .float-btn {
+      width: 38px;
+      height: 38px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #00b07c;
+      cursor: pointer;
+    }
+
+    /* 底部输入栏 */
+    .footer-input-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 640px;
+      height: 52px;
+      background: #ffffff;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+      z-index: 100;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .formula-input {
+      flex: 1;
+      height: 38px;
+      border: 1px solid #79c9b5;
+      border-radius: 4px;
+      padding: 0 12px;
+      font-size: 14px;
+      outline: none;
+      background: #f7f9fa;
+      color: #333;
+    }
+    .formula-input:focus {
+      border-color: #00b07c;
+      background: #ffffff;
+    }
+    .formula-submit-btn {
+      height: 38px;
+      padding: 0 18px;
+      background-color: #00b07c;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .formula-submit-btn:active {
+      opacity: 0.85;
     }
   </style>
 </head>
-+ <body class="bg-[#121316] text-gray-200 min-h-screen flex flex-col items-center p-3 sm:p-6 font-sans">
-  
-  <!-- 主容器 -->
-  <div class="w-full max-w-4xl bg-[#1e2025] border border-[#2d3039] rounded-2xl p-4 sm:p-6 shadow-2xl relative">
-    
-    <!-- 顶部标题 -->
-    <h1 class="text-center text-xl sm:text-2xl font-bold tracking-wider text-white mb-4">
-      数字生肖统计
-    </h1>
+<body>
 
-    <!-- 文本输入框 -->
-    <div class="relative">
-      <textarea id="numInput" rows="6" 
-        class="w-full bg-[#18191d] border border-[#2f323c] rounded-xl p-3 sm:p-4 text-gray-100 font-mono text-sm sm:text-base leading-relaxed tracking-wider outline-none focus:border-cyan-500 transition-colors resize-y placeholder-gray-500"
-        placeholder="请输入或粘贴数字（支持空格、换行、逗号分割）">01 03 04 05 07 08 10 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 28 29 30 31 33 34 36 37 38 39 40 41 43 44 45 46 47 48 49</textarea>
-      
-      <!-- 已输入统计提示 -->
-      <div class="mt-1 text-xs sm:text-sm text-gray-400 font-medium px-1 flex justify-between items-center">
-        <span>已输入: <span id="inputCount" class="text-yellow-400 font-semibold">0</span> 个</span>
-        <span class="text-xs text-gray-500">支持 01-49 号码分析</span>
-      </div>
+  <!-- 顶部标题 -->
+  <header class="header">
+    <span class="back-btn">&nbsp;</span>
+    <span>挑码助手</span>   
+    <span class="back-btn">&#128221;</span>
+  </header>
+
+  <!-- 统计结果展示区 -->
+  <div class="stats-panel" id="stats-panel">
+    <!-- JS 动态注入 [N次]: (共 X 个) -->
+  </div>
+
+  <!-- 功能操作按钮 -->
+  <div class="action-bar">
+    <button class="btn-act btn-act-green" id="kill-btn" onclick="toggleKillMode()">杀码</button>
+    <button class="btn-act btn-act-green" onclick="clearAll()">清空</button>
+    <button class="btn-act btn-act-green" onclick="copyResult()">复制结果</button>
+    <button class="btn-act btn-act-outline" onclick="shareResult()">&#9906; 分享结果</button>
+  </div>
+
+  <!-- 过滤按钮矩阵 -->
+  <div class="filter-wrap">
+    <!-- 单 双 大 小 -->
+    <div class="filter-grid col-4">
+      <div class="opt-btn" data-key="dan">单</div>
+      <div class="opt-btn" data-key="shuang">双</div>
+      <div class="opt-btn" data-key="da">大</div>
+      <div class="opt-btn" data-key="xiao">小</div>
     </div>
 
-    <!-- 功能快捷按钮栏 -->
-    <div class="grid grid-cols-5 gap-2 sm:gap-3 mt-3">
-      <!-- 打乱 -->
-      <button onclick="handleShuffle()" 
-        class="bg-[#386cb0] hover:bg-[#2c5894] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
-        <span>🔀</span><span>打乱</span>
-      </button>
-      <!-- 去重 -->
-      <button onclick="handleDeduplicate()" 
-        class="bg-[#805ad5] hover:bg-[#6b46c1] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
-        <span>✂️</span><span>去重</span>
-      </button>
-      <!-- 排序 -->
-      <button onclick="handleSort()" 
-        class="bg-[#d69e2e] hover:bg-[#b7791f] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
-        <span>🔢</span><span>排序</span>
-      </button>
-      <!-- 复制 -->
-      <button onclick="handleCopyInput()" 
-        class="bg-[#319795] hover:bg-[#285e61] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
-        <span>📋</span><span>复制</span>
-      </button>
-      <!-- 清空 -->
-      <button onclick="handleClear()" 
-        class="bg-[#e53e3e] hover:bg-[#c53030] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
-        <span>🗑️</span><span>清空</span>
-      </button>
+    <!-- 合单 大单 小单 尾大 -->
+    <div class="filter-grid col-4">
+      <div class="opt-btn" data-key="hedan">合单</div>
+      <div class="opt-btn" data-key="dadan">大单</div>
+      <div class="opt-btn" data-key="xiaodan">小单</div>
+      <div class="opt-btn" data-key="weida">尾大</div>
     </div>
 
-    <!-- 1. 基础统计卡片 -->
-    <div class="mt-4 bg-[#181a1f] border border-[#2b2e38] rounded-xl p-3 sm:p-4 text-xs sm:text-sm">
-      <div class="text-gray-300 font-bold mb-2 flex items-center gap-1.5">
-        <span>📊</span> 基础统计
-      </div>
-      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-300">
-        <div>总数: <span id="statTotal" class="text-yellow-400 font-bold">0</span></div>
-        <div>不重复: <span id="statUnique" class="text-yellow-400 font-bold">0</span></div>
-        <div>最高: <span id="statMax" class="text-rose-400 font-bold">0次</span></div>
-        <div>最低: <span id="statMin" class="text-sky-400 font-bold">0次</span></div>
-      </div>
+    <!-- 合双 大双 小双 尾小 -->
+    <div class="filter-grid col-4">
+      <div class="opt-btn" data-key="heshuang">合双</div>
+      <div class="opt-btn" data-key="dashuang">大双</div>
+      <div class="opt-btn" data-key="xiaoshuang">小双</div>
+      <div class="opt-btn" data-key="weixiao">尾小</div>
     </div>
 
-    <!-- 2. 次数分组卡片 -->
-    <div class="mt-3 bg-[#181a1f] border border-[#2b2e38] rounded-xl p-3 sm:p-4 text-xs sm:text-sm">
-      <div class="text-gray-300 font-bold mb-2 flex items-center gap-1.5">
-        <span>📁</span> 次数分组
-      </div>
-      
-      <!-- 动态分组容器 -->
-      <div id="freqGroupContainer" class="space-y-2 mb-3">
-        <!-- JS 动态注入行内容 -->
-      </div>
-
-      <!-- 复制全部分组按钮 -->
-      <button onclick="copyAllGroups()" 
-        class="w-full bg-[#285e61] hover:bg-[#234e52] active:scale-98 text-cyan-200 py-2 rounded-xl text-xs sm:text-sm font-medium transition shadow-inner">
-        复制全部
-      </button>
+    <!-- 金 木 水 火 土 -->
+    <div class="filter-grid col-5">
+      <div class="opt-btn" data-key="jin">金</div>
+      <div class="opt-btn" data-key="mu">木</div>
+      <div class="opt-btn" data-key="shui">水</div>
+      <div class="opt-btn" data-key="huo">火</div>
+      <div class="opt-btn" data-key="tu">土</div>
     </div>
 
-    <!-- 3. 生肖统计卡片 -->
-    <div class="mt-3 bg-[#181a1f] border border-[#2b2e38] rounded-xl p-3 sm:p-4 text-xs sm:text-sm">
-      <div class="text-gray-300 font-bold mb-2.5 flex items-center gap-1.5">
-        <span>🐍</span> 生肖统计
-      </div>
-      <div id="zodiacContainer" class="flex flex-wrap gap-2.5 items-center">
-        <!-- JS 动态生成各生肖频次徽章 -->
-      </div>
+    <!-- 红波 蓝波 绿波 家禽 野兽 -->
+    <div class="filter-grid col-5">
+      <div class="opt-btn" data-key="hongbo">红波</div>
+      <div class="opt-btn" data-key="lanbo">蓝波</div>
+      <div class="opt-btn" data-key="lvbo">绿波</div>
+      <div class="opt-btn" data-key="jiaqin">家禽</div>
+      <div class="opt-btn" data-key="yeshou">野兽</div>
     </div>
 
-    <!-- 底部模式切换按钮 -->
-    <div class="mt-5 flex justify-center items-center gap-2 sm:gap-3">
-      <button onclick="setRule('xinAo')" id="btn-xinAo" 
-        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">新澳</button>
-      <button onclick="setRule('laoAo')" id="btn-laoAo" 
-        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">老澳</button>
-      <button onclick="setRule('hk')" id="btn-hk" 
-        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">香港</button>
-      <button onclick="setRule('ai')" id="btn-ai" 
-        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">AI统计</button>
+    <!-- 红单 红双 蓝单 蓝双 绿单 绿双 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="hongdan">红单</div>
+      <div class="opt-btn" data-key="hongshuang">红双</div>
+      <div class="opt-btn" data-key="landan">蓝单</div>
+      <div class="opt-btn" data-key="lanshuang">蓝双</div>
+      <div class="opt-btn" data-key="lvdan">绿单</div>
+      <div class="opt-btn" data-key="lvshuang">绿双</div>
     </div>
 
-    <!-- 版权声明 -->
-    <div class="mt-4 text-center text-[11px] text-gray-500">
-      © 2026 蚂蚁数据·版权所有
+    <!-- 鼠 牛 虎 兔 龙 蛇 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-zodiac="鼠">鼠</div>
+      <div class="opt-btn" data-zodiac="牛">牛</div>
+      <div class="opt-btn" data-zodiac="虎">虎</div>
+      <div class="opt-btn" data-zodiac="兔">兔</div>
+      <div class="opt-btn" data-zodiac="龙">龙</div>
+      <div class="opt-btn" data-zodiac="蛇">蛇</div>
+    </div>
+
+    <!-- 马 羊 猴 鸡 狗 猪 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-zodiac="马">马</div>
+      <div class="opt-btn" data-zodiac="羊">羊</div>
+      <div class="opt-btn" data-zodiac="猴">猴</div>
+      <div class="opt-btn" data-zodiac="鸡">鸡</div>
+      <div class="opt-btn" data-zodiac="狗">狗</div>
+      <div class="opt-btn" data-zodiac="猪">猪</div>
+    </div>
+
+    <!-- 天肖 左肖 前肖 独字肖 阴肖 -->
+    <div class="filter-grid col-5">
+      <div class="opt-btn" data-key="tianxiao">天肖</div>
+      <div class="opt-btn" data-key="zuoxiao">左肖</div>
+      <div class="opt-btn" data-key="qianxiao">前肖</div>
+      <div class="opt-btn" data-key="duzixiao">独字肖</div>
+      <div class="opt-btn" data-key="yinxiao">阴肖</div>
+    </div>
+
+    <!-- 地肖 右肖 后肖 合字肖 阳肖 -->
+    <div class="filter-grid col-5">
+      <div class="opt-btn" data-key="dixiao">地肖</div>
+      <div class="opt-btn" data-key="youxiao">右肖</div>
+      <div class="opt-btn" data-key="houxiao">后肖</div>
+      <div class="opt-btn" data-key="hezixiao">合字肖</div>
+      <div class="opt-btn" data-key="yangxiao">阳肖</div>
+    </div>
+
+    <!-- 0尾 - 5尾 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="w0">0尾</div>
+      <div class="opt-btn" data-key="w1">1尾</div>
+      <div class="opt-btn" data-key="w2">2尾</div>
+      <div class="opt-btn" data-key="w3">3尾</div>
+      <div class="opt-btn" data-key="w4">4尾</div>
+      <div class="opt-btn" data-key="w5">5尾</div>
+    </div>
+
+    <!-- 6尾 - 9尾, 大尾, 小尾 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="w6">6尾</div>
+      <div class="opt-btn" data-key="w7">7尾</div>
+      <div class="opt-btn" data-key="w8">8尾</div>
+      <div class="opt-btn" data-key="w9">9尾</div>
+      <div class="opt-btn" data-key="dawei">大尾</div>
+      <div class="opt-btn" data-key="xiaowei">小尾</div>
+    </div>
+
+    <!-- 0头 - 4头 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="t0">0头</div>
+      <div class="opt-btn" data-key="t1">1头</div>
+      <div class="opt-btn" data-key="t2">2头</div>
+      <div class="opt-btn" data-key="t3">3头</div>
+      <div class="opt-btn" data-key="t4">4头</div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+
+    <!-- 1门 - 5门 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="m1">1门</div>
+      <div class="opt-btn" data-key="m2">2门</div>
+      <div class="opt-btn" data-key="m3">3门</div>
+      <div class="opt-btn" data-key="m4">4门</div>
+      <div class="opt-btn" data-key="m5">5门</div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+
+    <!-- 1段 - 6段 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="d1">1段</div>
+      <div class="opt-btn" data-key="d2">2段</div>
+      <div class="opt-btn" data-key="d3">3段</div>
+      <div class="opt-btn" data-key="d4">4段</div>
+      <div class="opt-btn" data-key="d5">5段</div>
+      <div class="opt-btn" data-key="d6">6段</div>
+    </div>
+    <!-- 7段 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="d7">7段</div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+
+    <!-- 1合 - 6合 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="h1">1合</div>
+      <div class="opt-btn" data-key="h2">2合</div>
+      <div class="opt-btn" data-key="h3">3合</div>
+      <div class="opt-btn" data-key="h4">4合</div>
+      <div class="opt-btn" data-key="h5">5合</div>
+      <div class="opt-btn" data-key="h6">6合</div>
+    </div>
+    <!-- 7合 - 12合 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="h7">7合</div>
+      <div class="opt-btn" data-key="h8">8合</div>
+      <div class="opt-btn" data-key="h9">9合</div>
+      <div class="opt-btn" data-key="h10">10合</div>
+      <div class="opt-btn" data-key="h11">11合</div>
+      <div class="opt-btn" data-key="h12">12合</div>
+    </div>
+    <!-- 13合 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="h13">13合</div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+
+    <!-- 0合尾 - 5合尾 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="hw0">0合尾</div>
+      <div class="opt-btn" data-key="hw1">1合尾</div>
+      <div class="opt-btn" data-key="hw2">2合尾</div>
+      <div class="opt-btn" data-key="hw3">3合尾</div>
+      <div class="opt-btn" data-key="hw4">4合尾</div>
+      <div class="opt-btn" data-key="hw5">5合尾</div>
+    </div>
+    <!-- 6合尾 - 9合尾 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="hw6">6合尾</div>
+      <div class="opt-btn" data-key="hw7">7合尾</div>
+      <div class="opt-btn" data-key="hw8">8合尾</div>
+      <div class="opt-btn" data-key="hw9">9合尾</div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+
+    <!-- 0头单 - 4头单 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="td0">0头单</div>
+      <div class="opt-btn" data-key="td1">1头单</div>
+      <div class="opt-btn" data-key="td2">2头单</div>
+      <div class="opt-btn" data-key="td3">3头单</div>
+      <div class="opt-btn" data-key="td4">4头单</div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+    <!-- 0头双 - 4头双 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="ts0">0头双</div>
+      <div class="opt-btn" data-key="ts1">1头双</div>
+      <div class="opt-btn" data-key="ts2">2头双</div>
+      <div class="opt-btn" data-key="ts3">3头双</div>
+      <div class="opt-btn" data-key="ts4">4头双</div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+
+    <!-- 3余 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="yu3_0">3余0</div>
+      <div class="opt-btn" data-key="yu3_1">3余1</div>
+      <div class="opt-btn" data-key="yu3_2">3余2</div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+    <!-- 4余 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="yu4_0">4余0</div>
+      <div class="opt-btn" data-key="yu4_1">4余1</div>
+      <div class="opt-btn" data-key="yu4_2">4余2</div>
+      <div class="opt-btn" data-key="yu4_3">4余3</div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+    <!-- 5余 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="yu5_0">5余0</div>
+      <div class="opt-btn" data-key="yu5_1">5余1</div>
+      <div class="opt-btn" data-key="yu5_2">5余2</div>
+      <div class="opt-btn" data-key="yu5_3">5余3</div>
+      <div class="opt-btn" data-key="yu5_4">5余4</div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+    <!-- 6余 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="yu6_0">6余0</div>
+      <div class="opt-btn" data-key="yu6_1">6余1</div>
+      <div class="opt-btn" data-key="yu6_2">6余2</div>
+      <div class="opt-btn" data-key="yu6_3">6余3</div>
+      <div class="opt-btn" data-key="yu6_4">6余4</div>
+      <div class="opt-btn" data-key="yu6_5">6余5</div>
+    </div>
+    <!-- 7余 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="yu7_0">7余0</div>
+      <div class="opt-btn" data-key="yu7_1">7余1</div>
+      <div class="opt-btn" data-key="yu7_2">7余2</div>
+      <div class="opt-btn" data-key="yu7_3">7余3</div>
+      <div class="opt-btn" data-key="yu7_4">7余4</div>
+      <div class="opt-btn" data-key="yu7_5">7余5</div>
+    </div>
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="yu7_6">7余6</div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+
+    <!-- 楼上码 前落码 左边码 内围码 中数 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="loushang">楼上码</div>
+      <div class="opt-btn" data-key="qianluo">前落码</div>
+      <div class="opt-btn" data-key="zuobian">左边码</div>
+      <div class="opt-btn" data-key="neiwei">内围码</div>
+      <div class="opt-btn" data-key="zhongshu">中数</div>
+      <div class="opt-btn placeholder"></div>
+    </div>
+    <!-- 楼下码 后落码 右边码 外围码 边数 -->
+    <div class="filter-grid col-6">
+      <div class="opt-btn" data-key="louxia">楼下码</div>
+      <div class="opt-btn" data-key="houluo">后落码</div>
+      <div class="opt-btn" data-key="youbian">右边码</div>
+      <div class="opt-btn" data-key="waiwei">外围码</div>
+      <div class="opt-btn" data-key="bianshu">边数</div>
+      <div class="opt-btn placeholder"></div>
     </div>
   </div>
 
-  <!-- 浮动 Toast 提示消息 -->
-  <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-black/85 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-lg text-sm shadow-xl opacity-0 pointer-events-none transition-all duration-300 z-50">
-    已复制到剪贴板
+  <!-- 底部组合输入栏 -->
+  <div class="footer-input-bar">
+    <input type="text" id="formula-input" class="formula-input" placeholder="输入条件组合，如：1尾+3门" onkeydown="if(event.key==='Enter') applyFormulaInput();" />
+    <button class="formula-submit-btn" onclick="applyFormulaInput()">确认</button>
   </div>
 
   <script>
-    // -------------------------------------------------------------
-    // 生肖数据映射定义 (按特码标准 01 - 49 号码映射对应表)
-    // -------------------------------------------------------------
-    const ZODIAC_NAMES = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
+    // 1. 波色球号定义
+    const RED = [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46];
+    const BLUE = [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48];
+    const GREEN = [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49];
 
-    // 默认提供基准映射 (以马为岁首对应的常规特码映射，可支持各模式扩展)
-    const ZODIAC_MAPS = {
-      // 常用排位：马(1,13,25,37,49), 蛇(2,14,26,38), 龙(3,15,27,39)...
-      xinAo: {
-        "马": ["01", "13", "25", "37", "49"],
-        "蛇": ["02", "14", "26", "38"],
-        "龙": ["03", "15", "27", "39"],
-        "兔": ["04", "16", "28", "40"],
-        "虎": ["05", "17", "29", "41"],
-        "牛": ["06", "18", "30", "42"],
-        "鼠": ["07", "19", "31", "43"],
-        "猪": ["08", "20", "32", "44"],
-        "狗": ["09", "21", "33", "45"],
-        "鸡": ["10", "22", "34", "46"],
-        "猴": ["11", "23", "35", "47"],
-        "羊": ["12", "24", "36", "48"]
-      },
-      laoAo: null, // 初始化时复用或配置
-      hk: null,
-      ai: null
+    // 2. 生肖映射 (按蛇年/当年排位规则推算)
+    const ZODIAC_MAP = {
+      "蛇": [1, 13, 25, 37, 49],
+      "龙": [2, 14, 26, 38],
+      "兔": [3, 15, 27, 39],
+      "虎": [4, 16, 28, 40],
+      "牛": [5, 17, 29, 41],
+      "鼠": [6, 18, 30, 42],
+      "猪": [7, 19, 31, 43],
+      "狗": [8, 20, 32, 44],
+      "鸡": [9, 21, 33, 45],
+      "猴": [10, 22, 34, 46],
+      "羊": [11, 23, 35, 47],
+      "马": [12, 24, 36, 48]
     };
-    ZODIAC_MAPS.laoAo = ZODIAC_MAPS.xinAo;
-    ZODIAC_MAPS.hk = ZODIAC_MAPS.xinAo;
-    ZODIAC_MAPS.ai = ZODIAC_MAPS.xinAo;
 
-    let currentRule = 'xinAo';
+    // 3. 基础属性规则
+    const RULES = {
+      dan: n => n % 2 === 1,
+      shuang: n => n % 2 === 0,
+      da: n => n >= 25,
+      xiao: n => n < 25,
+      hedan: n => ((Math.floor(n / 10) + (n % 10)) % 2 === 1),
+      heshuang: n => ((Math.floor(n / 10) + (n % 10)) % 2 === 0),
+      dadan: n => n >= 25 && n % 2 === 1,
+      dashuang: n => n >= 25 && n % 2 === 0,
+      xiaodan: n => n < 25 && n % 2 === 1,
+      xiaoshuang: n => n < 25 && n % 2 === 0,
+      weida: n => (n % 10) >= 5,
+      weixiao: n => (n % 10) < 5,
+      hongbo: n => RED.includes(n),
+      lanbo: n => BLUE.includes(n),
+      lvbo: n => GREEN.includes(n),
+      hongdan: n => RED.includes(n) && n % 2 === 1,
+      hongshuang: n => RED.includes(n) && n % 2 === 0,
+      landan: n => BLUE.includes(n) && n % 2 === 1,
+      lanshuang: n => BLUE.includes(n) && n % 2 === 0,
+      lvdan: n => GREEN.includes(n) && n % 2 === 1,
+      lvshuang: n => GREEN.includes(n) && n % 2 === 0,
+      // 家禽 / 野兽
+      jiaqin: n => ["牛", "马", "羊", "鸡", "狗", "猪"].some(z => ZODIAC_MAP[z].includes(n)),
+      yeshou: n => ["鼠", "虎", "兔", "龙", "蛇", "猴"].some(z => ZODIAC_MAP[z].includes(n)),
+      // 天地前后的生肖属性
+      tianxiao: n => ["牛", "兔", "龙", "马", "猴", "猪"].some(z => ZODIAC_MAP[z].includes(n)),
+      dixiao: n => ["鼠", "虎", "蛇", "羊", "鸡", "狗"].some(z => ZODIAC_MAP[z].includes(n)),
+      qianxiao: n => ["鼠", "牛", "虎", "兔", "龙", "蛇"].some(z => ZODIAC_MAP[z].includes(n)),
+      houxiao: n => ["马", "羊", "猴", "鸡", "狗", "猪"].some(z => ZODIAC_MAP[z].includes(n)),
+      zuoxiao: n => ["鼠", "牛", "虎", "兔", "龙", "蛇"].some(z => ZODIAC_MAP[z].includes(n)),
+      youxiao: n => ["马", "羊", "猴", "鸡", "狗", "猪"].some(z => ZODIAC_MAP[z].includes(n)),
+      duzixiao: n => ["鼠", "牛", "虎", "兔", "马", "羊"].some(z => ZODIAC_MAP[z].includes(n)),
+      hezixiao: n => ["龙", "蛇", "猴", "鸡", "狗", "猪"].some(z => ZODIAC_MAP[z].includes(n)),
+      yinxiao: n => ["鼠", "龙", "蛇", "马", "狗", "猪"].some(z => ZODIAC_MAP[z].includes(n)),
+      yangxiao: n => ["牛", "虎", "兔", "羊", "猴", "鸡"].some(z => ZODIAC_MAP[z].includes(n)),
+      // 五行
+      jin: n => [2, 3, 16, 17, 24, 25, 32, 33, 46, 47].includes(n),
+      mu: n => [6, 7, 14, 15, 28, 29, 36, 37, 44, 45].includes(n),
+      shui: n => [12, 13, 20, 21, 34, 35, 42, 43].includes(n),
+      huo: n => [8, 9, 22, 23, 30, 31, 38, 39].includes(n),
+      tu: n => [1, 4, 5, 10, 11, 18, 19, 26, 27, 40, 41, 48, 49].includes(n),
+      // 尾数 (0尾 ~ 9尾)
+      w0: n => n % 10 === 0,
+      w1: n => n % 10 === 1,
+      w2: n => n % 10 === 2,
+      w3: n => n % 10 === 3,
+      w4: n => n % 10 === 4,
+      w5: n => n % 10 === 5,
+      w6: n => n % 10 === 6,
+      w7: n => n % 10 === 7,
+      w8: n => n % 10 === 8,
+      w9: n => n % 10 === 9,
+      dawei: n => (n % 10) >= 5,
+      xiaowei: n => (n % 10) < 5,
 
-    // 格式化为两位数
-    function pad2(num) {
-      const n = parseInt(num, 10);
-      if (isNaN(n)) return '';
-      return n < 10 ? '0' + n : '' + n;
-    }
+      // 头数 (0头 ~ 4头)
+      t0: n => Math.floor(n / 10) === 0,
+      t1: n => Math.floor(n / 10) === 1,
+      t2: n => Math.floor(n / 10) === 2,
+      t3: n => Math.floor(n / 10) === 3,
+      t4: n => Math.floor(n / 10) === 4,
 
-    // 复制文本辅助函数 (兼容 iframe 环境)
-    function copyText(text) {
-      if (!text) return;
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        showToast("复制成功");
-      } catch (err) {
-        showToast("复制失败，请手动复制");
-      }
-      document.body.removeChild(textarea);
-    }
+      // 门数 (1门 ~ 5门)
+      m1: n => n >= 1 && n <= 10,
+      m2: n => n >= 11 && n <= 20,
+      m3: n => n >= 21 && n <= 30,
+      m4: n => n >= 31 && n <= 40,
+      m5: n => n >= 41 && n <= 49,
 
-    // 显示轻提示
-    function showToast(msg) {
-      const toast = document.getElementById("toast");
-      toast.textContent = msg;
-      toast.classList.remove("opacity-0", "pointer-events-none");
-      toast.classList.add("opacity-100");
-      setTimeout(() => {
-        toast.classList.remove("opacity-100");
-        toast.classList.add("opacity-0", "pointer-events-none");
-      }, 1500);
-    }
+      // 段数 (1段 ~ 7段)
+      d1: n => n >= 1 && n <= 7,
+      d2: n => n >= 8 && n <= 14,
+      d3: n => n >= 15 && n <= 21,
+      d4: n => n >= 22 && n <= 28,
+      d5: n => n >= 29 && n <= 35,
+      d6: n => n >= 36 && n <= 42,
+      d7: n => n >= 43 && n <= 49,
 
-    // 获取当前输入的所有有效数字数组
-    function getParsedNumbers() {
-      const raw = document.getElementById("numInput").value;
-      const matches = raw.match(/\b\d+\b/g) || [];
-      return matches.map(pad2).filter(n => n !== '');
-    }
+      // 合数 (1合 ~ 13合)
+      h1: n => (Math.floor(n / 10) + (n % 10)) === 1,
+      h2: n => (Math.floor(n / 10) + (n % 10)) === 2,
+      h3: n => (Math.floor(n / 10) + (n % 10)) === 3,
+      h4: n => (Math.floor(n / 10) + (n % 10)) === 4,
+      h5: n => (Math.floor(n / 10) + (n % 10)) === 5,
+      h6: n => (Math.floor(n / 10) + (n % 10)) === 6,
+      h7: n => (Math.floor(n / 10) + (n % 10)) === 7,
+      h8: n => (Math.floor(n / 10) + (n % 10)) === 8,
+      h9: n => (Math.floor(n / 10) + (n % 10)) === 9,
+      h10: n => (Math.floor(n / 10) + (n % 10)) === 10,
+      h11: n => (Math.floor(n / 10) + (n % 10)) === 11,
+      h12: n => (Math.floor(n / 10) + (n % 10)) === 12,
+      h13: n => (Math.floor(n / 10) + (n % 10)) === 13,
 
-    // 核心重算与渲染函数
+      // 合尾 (0合尾 ~ 9合尾)
+      hw0: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 0,
+      hw1: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 1,
+      hw2: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 2,
+      hw3: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 3,
+      hw4: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 4,
+      hw5: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 5,
+      hw6: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 6,
+      hw7: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 7,
+      hw8: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 8,
+      hw9: n => ((Math.floor(n / 10) + (n % 10)) % 10) === 9,
+
+      // 头单 / 头双
+      td0: n => Math.floor(n / 10) === 0 && n % 2 === 1,
+      td1: n => Math.floor(n / 10) === 1 && n % 2 === 1,
+      td2: n => Math.floor(n / 10) === 2 && n % 2 === 1,
+      td3: n => Math.floor(n / 10) === 3 && n % 2 === 1,
+      td4: n => Math.floor(n / 10) === 4 && n % 2 === 1,
+      ts0: n => Math.floor(n / 10) === 0 && n % 2 === 0,
+      ts1: n => Math.floor(n / 10) === 1 && n % 2 === 0,
+      ts2: n => Math.floor(n / 10) === 2 && n % 2 === 0,
+      ts3: n => Math.floor(n / 10) === 3 && n % 2 === 0,
+      ts4: n => Math.floor(n / 10) === 4 && n % 2 === 0,
+
+      // 余数
+      yu3_0: n => n % 3 === 0,
+      yu3_1: n => n % 3 === 1,
+      yu3_2: n => n % 3 === 2,
+      yu4_0: n => n % 4 === 0,
+      yu4_1: n => n % 4 === 1,
+      yu4_2: n => n % 4 === 2,
+      yu4_3: n => n % 4 === 3,
+      yu5_0: n => n % 5 === 0,
+      yu5_1: n => n % 5 === 1,
+      yu5_2: n => n % 5 === 2,
+      yu5_3: n => n % 5 === 3,
+      yu5_4: n => n % 5 === 4,
+      yu6_0: n => n % 6 === 0,
+      yu6_1: n => n % 6 === 1,
+      yu6_2: n => n % 6 === 2,
+      yu6_3: n => n % 6 === 3,
+      yu6_4: n => n % 6 === 4,
+      yu6_5: n => n % 6 === 5,
+      yu7_0: n => n % 7 === 0,
+      yu7_1: n => n % 7 === 1,
+      yu7_2: n => n % 7 === 2,
+      yu7_3: n => n % 7 === 3,
+      yu7_4: n => n % 7 === 4,
+      yu7_5: n => n % 7 === 5,
+      yu7_6: n => n % 7 === 6,
+
+      // 楼上 / 楼下
+      loushang: n => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 25, 26, 27, 28].includes(n),
+      louxia: n => [22, 23, 24, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49].includes(n),
+
+      // 前落 / 后落
+      qianluo: n => [1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24, 33, 34, 35, 36, 37, 38, 39, 40].includes(n),
+      houluo: n => [9, 10, 11, 12, 13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32, 41, 42, 43, 44, 45, 46, 47, 48, 49].includes(n),
+
+      // 左边 / 右边
+      zuobian: n => [1, 2, 3, 4, 8, 9, 10, 11, 15, 16, 17, 18, 22, 23, 24, 29, 30, 31, 36, 37, 38, 43, 44, 45].includes(n),
+      youbian: n => [5, 6, 7, 12, 13, 14, 19, 20, 21, 25, 26, 27, 28, 32, 33, 34, 35, 39, 40, 41, 42, 46, 47, 48, 49].includes(n),
+
+      // 内围 / 外围
+      neiwei: n => [9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41].includes(n),
+      waiwei: n => [1, 2, 3, 4, 5, 6, 7, 8, 14, 15, 21, 22, 28, 29, 35, 36, 42, 43, 44, 45, 46, 47, 48, 49].includes(n),
+
+      // 中数 / 边数
+      zhongshu: n => n >= 13 && n <= 37,
+      bianshu: n => (n >= 1 && n <= 12) || (n >= 38 && n <= 49)
+    };
+
+    let isKillMode = false;
+    const historyStack = [];
+
+    // 格式化数字：5 -> "05"
+    const pad = n => n < 10 ? '0' + n : '' + n;
+
+    // 核心算法：按选中的条件对 1~49 号码进行命中频次累加
     function recalculate() {
-      const nums = getParsedNumbers();
-      document.getElementById("inputCount").textContent = nums.length;
-      document.getElementById("statTotal").textContent = nums.length;
+      const activeBtns = Array.from(document.querySelectorAll('.opt-btn.active'));
 
-      // 统计所有输入数字的频次
-      const freqMap = {};
-      nums.forEach(n => {
-        freqMap[n] = (freqMap[n] || 0) + 1;
-      });
-
-      const uniqueKeys = Object.keys(freqMap);
-      document.getElementById("statUnique").textContent = uniqueKeys.length;
-
-      // 生成标准特码池 01 ~ 49 的频次
-      const fullFreqMap = {};
-      for (let i = 1; i <= 49; i++) {
-        const key = pad2(i);
-        fullFreqMap[key] = freqMap[key] || 0;
+      // 同步已选中的按钮文字到文本框，以 '+' 连接
+      const formulaInput = document.getElementById('formula-input');
+      if (formulaInput) {
+        formulaInput.value = activeBtns.map(b => b.textContent.trim()).filter(Boolean).join('+');
       }
 
-      // 计算最高与最低频次
-      let maxCount = 0;
-      let minCount = Infinity;
-      if (nums.length === 0) {
-        maxCount = 0;
-        minCount = 0;
-      } else {
-        for (let i = 1; i <= 49; i++) {
-          const k = pad2(i);
-          const c = fullFreqMap[k];
-          if (c > maxCount) maxCount = c;
-          if (c < minCount) minCount = c;
-        }
-      }
-
-      document.getElementById("statMax").innerHTML = `${maxCount}次<span class="text-rose-400 font-bold ml-0.5">(H)</span>`;
-      document.getElementById("statMin").innerHTML = `${minCount}次<span class="text-sky-400 font-bold ml-0.5">(L)</span>`;
-
-      // 组织“次数分组”
-      renderFrequencyGroups(fullFreqMap, maxCount, minCount);
-
-      // 组织“生肖统计”
-      renderZodiacStats(freqMap);
-    }
-
-    // 渲染次数分组
-    function renderFrequencyGroups(fullFreqMap, maxCount, minCount) {
-      const container = document.getElementById("freqGroupContainer");
-      container.innerHTML = "";
-
-      // 按出现次数归类
-      const groups = {};
-      for (let i = 1; i <= 49; i++) {
-        const k = pad2(i);
-        const count = fullFreqMap[k];
-        if (!groups[count]) groups[count] = [];
-        groups[count].push(k);
-      }
-
-      // 获取所有存在的出现频次，升序排列
-      const counts = Object.keys(groups).map(Number).sort((a, b) => a - b);
-
-      counts.forEach(count => {
-        const list = groups[count];
-        if (!list || list.length === 0) return;
-
-        // 标签：L (最低)、H (最高)
-        let tag = "";
-        if (count === minCount && minCount !== maxCount) {
-          tag = `<span class="text-sky-400 font-bold mr-1">L</span>`;
-        } else if (count === maxCount && maxCount !== 0) {
-          tag = `<span class="text-rose-400 font-bold mr-1">H</span>`;
-        }
-
-        const numbersStr = list.join(" ");
-
-        const row = document.createElement("div");
-        row.className = "flex flex-col sm:flex-row sm:items-center justify-between bg-[#202228] hover:bg-[#252830] transition p-2.5 rounded-lg border border-[#2f333e] gap-2";
-        row.innerHTML = `
-          <div class="leading-relaxed">
-            ${tag}<span class="text-gray-200 font-bold">${count} 次</span>
-            <span class="text-amber-400 font-semibold">(${list.length}个)</span>:
-            <span class="text-gray-300 font-mono tracking-wider ml-1 text-xs sm:text-sm select-text">${numbersStr}</span>
-          </div>
-          <button data-copy="${numbersStr}" 
-            class="group-copy-btn self-end sm:self-center bg-[#319795]/30 hover:bg-[#319795] text-cyan-200 hover:text-white px-3 py-1 rounded-md text-xs font-medium border border-teal-500/40 transition">
-            复制
-          </button>
-        `;
-
-        // 绑定单个复制事件
-        row.querySelector('.group-copy-btn').addEventListener('click', () => {
-          copyText(numbersStr);
-        });
-
-        container.appendChild(row);
-      });
-    }
-
-    // 复制全部出现次数的分组内容
-    function copyAllGroups() {
-      const container = document.getElementById("freqGroupContainer");
-      const rows = container.children;
-      if (rows.length === 0) {
-        showToast("暂无可复制的内容");
+      const panel = document.getElementById('stats-panel');
+      if (activeBtns.length === 0) {
+        panel.innerHTML = '';
         return;
       }
-      let combined = [];
-      for (let row of rows) {
-        const textElem = row.querySelector("div");
-        if (textElem) {
-          combined.push(textElem.innerText.replace(/\s+/g, ' ').trim());
+      const counts = Array(50).fill(0); // 下标 1~49
+
+      activeBtns.forEach(btn => {
+        const key = btn.getAttribute('data-key');
+        const zodiac = btn.getAttribute('data-zodiac');
+
+        for (let num = 1; num <= 49; num++) {
+          let hit = false;
+          if (key && RULES[key] && RULES[key](num)) hit = true;
+          if (zodiac && ZODIAC_MAP[zodiac] && ZODIAC_MAP[zodiac].includes(num)) hit = true;
+          if (hit) counts[num]++;
         }
+      });
+
+      // 将号码按出现频次降序归类到分组
+      const totalSelected = activeBtns.length;
+      const grouped = {};
+      for (let num = 1; num <= 49; num++) {
+        let cnt = counts[num];
+        // 如果开启杀码模式，频次取反向
+        if (isKillMode) {
+          cnt = totalSelected - cnt;
+        }
+        if (!grouped[cnt]) grouped[cnt] = [];
+        grouped[cnt].push(num);
       }
-      copyText(combined.join("\n"));
+
+      // 获取当前所有的出现次数并从大到小排序
+      const freqs = Object.keys(grouped).map(Number).sort((a, b) => b - a);
+      panel.innerHTML = '';
+
+      freqs.forEach(freq => {
+        const list = grouped[freq].sort((a, b) => a - b);
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+
+        const title = document.createElement('div');
+        title.className = 'stat-title';
+        title.textContent = `[${freq}次]: (共 ${list.length} 个)`;
+
+        const nums = document.createElement('div');
+        nums.className = 'stat-nums';
+        nums.textContent = list.map(pad).join(', ');
+
+        row.appendChild(title);
+        row.appendChild(nums);
+        panel.appendChild(row);
+      });
     }
 
-    // 渲染生肖统计徽章
-    function renderZodiacStats(freqMap) {
-      const container = document.getElementById("zodiacContainer");
-      container.innerHTML = "";
+    // 记录历史用于回退
+    function saveHistory() {
+      const activeKeys = Array.from(document.querySelectorAll('.opt-btn.active')).map(btn => {
+        return btn.getAttribute('data-key') || btn.getAttribute('data-zodiac');
+      });
+      historyStack.push(activeKeys);
+    }
 
-      const currentMap = ZODIAC_MAPS[currentRule] || ZODIAC_MAPS.xinAo;
-      const zodiacCounts = [];
-
-      for (const [zodiac, nums] of Object.entries(currentMap)) {
-        let total = 0;
-        nums.forEach(n => {
-          total += (freqMap[n] || 0);
+    function historyBack() {
+      if (historyStack.length > 1) {
+        historyStack.pop(); // 弹出当前
+        const prev = historyStack[historyStack.length - 1];
+        document.querySelectorAll('.opt-btn').forEach(btn => {
+          const val = btn.getAttribute('data-key') || btn.getAttribute('data-zodiac');
+          if (prev.includes(val)) btn.classList.add('active');
+          else btn.classList.remove('active');
         });
-        zodiacCounts.push({ zodiac, count: total });
+        recalculate();
       }
+    }
 
-      // 按出现次数降序排列展示
-      zodiacCounts.sort((a, b) => b.count - a.count);
+    // 模式切换
+    function toggleKillMode() {
+      isKillMode = !isKillMode;
+      const btn = document.getElementById('kill-btn');
+      if (isKillMode) {
+        btn.classList.add('kill-active');
+        btn.textContent = '恢复选码';
+      } else {
+        btn.classList.remove('kill-active');
+        btn.textContent = '杀码';
+      }
+      recalculate();
+    }
 
-      zodiacCounts.forEach((item, idx) => {
-        const el = document.createElement("div");
-        
-        // 前几名或有值的生肖色彩高亮区分
-        let colorClass = "text-gray-300";
-        if (item.count >= 4) {
-          colorClass = "text-rose-400 font-bold";
-        } else if (item.count >= 2) {
-          colorClass = "text-yellow-400 font-bold";
-        } else if (item.count === 1) {
-          colorClass = "text-emerald-400";
-        } else {
-          colorClass = "text-gray-400";
+    // 清空
+    function clearAll() {
+      document.querySelectorAll('.opt-btn.active').forEach(b => b.classList.remove('active'));
+      document.getElementById('stats-panel').innerHTML = '';
+      const input = document.getElementById('formula-input');
+      if (input) input.value = '';
+      saveHistory();
+    }
+
+    // 复制结果
+    function copyResult() {
+      const text = document.getElementById('stats-panel').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('结果已成功复制到剪贴板！');
+      }).catch(() => {
+        alert('复制失败，请手动选择复制');
+      });
+    }
+
+    // 分享
+    function shareResult() {
+      alert('已生成分享数据');
+    }
+
+    // 按钮事件监听
+    document.querySelectorAll('.opt-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+        saveHistory();
+        recalculate();
+      });
+    });
+
+    // 快捷输入条件组合并触发对应按钮点击
+    function applyFormulaInput() {
+      const input = document.getElementById('formula-input');
+      if (!input) return;
+      const val = input.value.trim();
+      if (!val) return;
+
+      // 支持以 +、逗号、空格、顿号等分割多个条件
+      const tokens = val.split(/[+,\s，、;；]+/).filter(Boolean);
+      const allBtns = Array.from(document.querySelectorAll('.opt-btn:not(.placeholder)'));
+
+      tokens.forEach(token => {
+        const targetBtn = allBtns.find(btn => btn.textContent.trim() === token);
+        if (targetBtn) {
+          targetBtn.click();
         }
-
-        el.className = `bg-[#242730] border border-[#323642] px-2.5 py-1 rounded-lg text-xs flex items-center space-x-1.5 shadow-sm`;
-        el.innerHTML = `
-          <span class="text-white font-medium">${item.zodiac}</span>
-          <span class="${colorClass}">${item.count}</span>
-        `;
-        container.appendChild(el);
       });
     }
 
-    // -------------------------------------------------------------
-    // 工具按钮处理函数
-    // -------------------------------------------------------------
-    function handleShuffle() {
-      const nums = getParsedNumbers();
-      for (let i = nums.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [nums[i], nums[j]] = [nums[j], nums[i]];
-      }
-      document.getElementById("numInput").value = nums.join(" ");
-      recalculate();
-    }
-
-    function handleDeduplicate() {
-      const nums = getParsedNumbers();
-      const unique = Array.from(new Set(nums));
-      document.getElementById("numInput").value = unique.join(" ");
-      recalculate();
-    }
-
-    function handleSort() {
-      const nums = getParsedNumbers();
-      nums.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-      document.getElementById("numInput").value = nums.join(" ");
-      recalculate();
-    }
-
-    function handleCopyInput() {
-      const text = document.getElementById("numInput").value.trim();
-      copyText(text);
-    }
-
-    function handleClear() {
-      document.getElementById("numInput").value = "";
-      recalculate();
-    }
-
-    // 规则模式切换
-    function setRule(rule) {
-      currentRule = rule;
-      document.querySelectorAll(".rule-btn").forEach(btn => {
-        btn.classList.remove("bg-[#319795]", "text-white", "shadow-md");
-        btn.classList.add("bg-[#2a2d36]", "text-gray-300");
-      });
-      const activeBtn = document.getElementById(`btn-${rule}`);
-      if (activeBtn) {
-        activeBtn.classList.add("bg-[#319795]", "text-white", "shadow-md");
-        activeBtn.classList.remove("bg-[#2a2d36]", "text-gray-300");
-      }
-      recalculate();
-    }
-
-    // 监听输入自动刷新统计
-    document.getElementById("numInput").addEventListener("input", recalculate);
-
-    // 页面初始化
-    window.onload = function() {
-      setRule('xinAo');
-      recalculate();
-    };
+    // 初始化运行：保存当前默认的3个条件（双、尾大、家禽）并计算结果
+    saveHistory();
+    recalculate();
   </script>
 </body>
 </html>
