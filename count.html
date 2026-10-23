@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字生肖统计</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 自定义暗色滚动条 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e1e24;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #52525b;
+    }
+  </style>
+</head>
++ <body class="bg-[#121316] text-gray-200 min-h-screen flex flex-col items-center p-3 sm:p-6 font-sans">
+  
+  <!-- 主容器 -->
+  <div class="w-full max-w-4xl bg-[#1e2025] border border-[#2d3039] rounded-2xl p-4 sm:p-6 shadow-2xl relative">
+    
+    <!-- 顶部标题 -->
+    <h1 class="text-center text-xl sm:text-2xl font-bold tracking-wider text-white mb-4">
+      数字生肖统计
+    </h1>
+
+    <!-- 文本输入框 -->
+    <div class="relative">
+      <textarea id="numInput" rows="6" 
+        class="w-full bg-[#18191d] border border-[#2f323c] rounded-xl p-3 sm:p-4 text-gray-100 font-mono text-sm sm:text-base leading-relaxed tracking-wider outline-none focus:border-cyan-500 transition-colors resize-y placeholder-gray-500"
+        placeholder="请输入或粘贴数字（支持空格、换行、逗号分割）">01 03 04 05 07 08 10 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 28 29 30 31 33 34 36 37 38 39 40 41 43 44 45 46 47 48 49</textarea>
+      
+      <!-- 已输入统计提示 -->
+      <div class="mt-1 text-xs sm:text-sm text-gray-400 font-medium px-1 flex justify-between items-center">
+        <span>已输入: <span id="inputCount" class="text-yellow-400 font-semibold">0</span> 个</span>
+        <span class="text-xs text-gray-500">支持 01-49 号码分析</span>
+      </div>
+    </div>
+
+    <!-- 功能快捷按钮栏 -->
+    <div class="grid grid-cols-5 gap-2 sm:gap-3 mt-3">
+      <!-- 打乱 -->
+      <button onclick="handleShuffle()" 
+        class="bg-[#386cb0] hover:bg-[#2c5894] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
+        <span>🔀</span><span>打乱</span>
+      </button>
+      <!-- 去重 -->
+      <button onclick="handleDeduplicate()" 
+        class="bg-[#805ad5] hover:bg-[#6b46c1] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
+        <span>✂️</span><span>去重</span>
+      </button>
+      <!-- 排序 -->
+      <button onclick="handleSort()" 
+        class="bg-[#d69e2e] hover:bg-[#b7791f] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
+        <span>🔢</span><span>排序</span>
+      </button>
+      <!-- 复制 -->
+      <button onclick="handleCopyInput()" 
+        class="bg-[#319795] hover:bg-[#285e61] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
+        <span>📋</span><span>复制</span>
+      </button>
+      <!-- 清空 -->
+      <button onclick="handleClear()" 
+        class="bg-[#e53e3e] hover:bg-[#c53030] active:scale-95 text-white py-2 px-1 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 shadow-md">
+        <span>🗑️</span><span>清空</span>
+      </button>
+    </div>
+
+    <!-- 1. 基础统计卡片 -->
+    <div class="mt-4 bg-[#181a1f] border border-[#2b2e38] rounded-xl p-3 sm:p-4 text-xs sm:text-sm">
+      <div class="text-gray-300 font-bold mb-2 flex items-center gap-1.5">
+        <span>📊</span> 基础统计
+      </div>
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-300">
+        <div>总数: <span id="statTotal" class="text-yellow-400 font-bold">0</span></div>
+        <div>不重复: <span id="statUnique" class="text-yellow-400 font-bold">0</span></div>
+        <div>最高: <span id="statMax" class="text-rose-400 font-bold">0次</span></div>
+        <div>最低: <span id="statMin" class="text-sky-400 font-bold">0次</span></div>
+      </div>
+    </div>
+
+    <!-- 2. 次数分组卡片 -->
+    <div class="mt-3 bg-[#181a1f] border border-[#2b2e38] rounded-xl p-3 sm:p-4 text-xs sm:text-sm">
+      <div class="text-gray-300 font-bold mb-2 flex items-center gap-1.5">
+        <span>📁</span> 次数分组
+      </div>
+      
+      <!-- 动态分组容器 -->
+      <div id="freqGroupContainer" class="space-y-2 mb-3">
+        <!-- JS 动态注入行内容 -->
+      </div>
+
+      <!-- 复制全部分组按钮 -->
+      <button onclick="copyAllGroups()" 
+        class="w-full bg-[#285e61] hover:bg-[#234e52] active:scale-98 text-cyan-200 py-2 rounded-xl text-xs sm:text-sm font-medium transition shadow-inner">
+        复制全部
+      </button>
+    </div>
+
+    <!-- 3. 生肖统计卡片 -->
+    <div class="mt-3 bg-[#181a1f] border border-[#2b2e38] rounded-xl p-3 sm:p-4 text-xs sm:text-sm">
+      <div class="text-gray-300 font-bold mb-2.5 flex items-center gap-1.5">
+        <span>🐍</span> 生肖统计
+      </div>
+      <div id="zodiacContainer" class="flex flex-wrap gap-2.5 items-center">
+        <!-- JS 动态生成各生肖频次徽章 -->
+      </div>
+    </div>
+
+    <!-- 底部模式切换按钮 -->
+    <div class="mt-5 flex justify-center items-center gap-2 sm:gap-3">
+      <button onclick="setRule('xinAo')" id="btn-xinAo" 
+        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">新澳</button>
+      <button onclick="setRule('laoAo')" id="btn-laoAo" 
+        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">老澳</button>
+      <button onclick="setRule('hk')" id="btn-hk" 
+        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">香港</button>
+      <button onclick="setRule('ai')" id="btn-ai" 
+        class="rule-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-[#2a2d36] text-gray-300 hover:bg-[#373a46] transition">AI统计</button>
+    </div>
+
+    <!-- 版权声明 -->
+    <div class="mt-4 text-center text-[11px] text-gray-500">
+      © 2026 蚂蚁数据·版权所有
+    </div>
+  </div>
+
+  <!-- 浮动 Toast 提示消息 -->
+  <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-black/85 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-lg text-sm shadow-xl opacity-0 pointer-events-none transition-all duration-300 z-50">
+    已复制到剪贴板
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // 生肖数据映射定义 (按特码标准 01 - 49 号码映射对应表)
+    // -------------------------------------------------------------
+    const ZODIAC_NAMES = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
+
+    // 默认提供基准映射 (以马为岁首对应的常规特码映射，可支持各模式扩展)
+    const ZODIAC_MAPS = {
+      // 常用排位：马(1,13,25,37,49), 蛇(2,14,26,38), 龙(3,15,27,39)...
+      xinAo: {
+        "马": ["01", "13", "25", "37", "49"],
+        "蛇": ["02", "14", "26", "38"],
+        "龙": ["03", "15", "27", "39"],
+        "兔": ["04", "16", "28", "40"],
+        "虎": ["05", "17", "29", "41"],
+        "牛": ["06", "18", "30", "42"],
+        "鼠": ["07", "19", "31", "43"],
+        "猪": ["08", "20", "32", "44"],
+        "狗": ["09", "21", "33", "45"],
+        "鸡": ["10", "22", "34", "46"],
+        "猴": ["11", "23", "35", "47"],
+        "羊": ["12", "24", "36", "48"]
+      },
+      laoAo: null, // 初始化时复用或配置
+      hk: null,
+      ai: null
+    };
+    ZODIAC_MAPS.laoAo = ZODIAC_MAPS.xinAo;
+    ZODIAC_MAPS.hk = ZODIAC_MAPS.xinAo;
+    ZODIAC_MAPS.ai = ZODIAC_MAPS.xinAo;
+
+    let currentRule = 'xinAo';
+
+    // 格式化为两位数
+    function pad2(num) {
+      const n = parseInt(num, 10);
+      if (isNaN(n)) return '';
+      return n < 10 ? '0' + n : '' + n;
+    }
+
+    // 复制文本辅助函数 (兼容 iframe 环境)
+    function copyText(text) {
+      if (!text) return;
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast("复制成功");
+      } catch (err) {
+        showToast("复制失败，请手动复制");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // 显示轻提示
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.remove("opacity-0", "pointer-events-none");
+      toast.classList.add("opacity-100");
+      setTimeout(() => {
+        toast.classList.remove("opacity-100");
+        toast.classList.add("opacity-0", "pointer-events-none");
+      }, 1500);
+    }
+
+    // 获取当前输入的所有有效数字数组
+    function getParsedNumbers() {
+      const raw = document.getElementById("numInput").value;
+      const matches = raw.match(/\b\d+\b/g) || [];
+      return matches.map(pad2).filter(n => n !== '');
+    }
+
+    // 核心重算与渲染函数
+    function recalculate() {
+      const nums = getParsedNumbers();
+      document.getElementById("inputCount").textContent = nums.length;
+      document.getElementById("statTotal").textContent = nums.length;
+
+      // 统计所有输入数字的频次
+      const freqMap = {};
+      nums.forEach(n => {
+        freqMap[n] = (freqMap[n] || 0) + 1;
+      });
+
+      const uniqueKeys = Object.keys(freqMap);
+      document.getElementById("statUnique").textContent = uniqueKeys.length;
+
+      // 生成标准特码池 01 ~ 49 的频次
+      const fullFreqMap = {};
+      for (let i = 1; i <= 49; i++) {
+        const key = pad2(i);
+        fullFreqMap[key] = freqMap[key] || 0;
+      }
+
+      // 计算最高与最低频次
+      let maxCount = 0;
+      let minCount = Infinity;
+      if (nums.length === 0) {
+        maxCount = 0;
+        minCount = 0;
+      } else {
+        for (let i = 1; i <= 49; i++) {
+          const k = pad2(i);
+          const c = fullFreqMap[k];
+          if (c > maxCount) maxCount = c;
+          if (c < minCount) minCount = c;
+        }
+      }
+
+      document.getElementById("statMax").innerHTML = `${maxCount}次<span class="text-rose-400 font-bold ml-0.5">(H)</span>`;
+      document.getElementById("statMin").innerHTML = `${minCount}次<span class="text-sky-400 font-bold ml-0.5">(L)</span>`;
+
+      // 组织“次数分组”
+      renderFrequencyGroups(fullFreqMap, maxCount, minCount);
+
+      // 组织“生肖统计”
+      renderZodiacStats(freqMap);
+    }
+
+    // 渲染次数分组
+    function renderFrequencyGroups(fullFreqMap, maxCount, minCount) {
+      const container = document.getElementById("freqGroupContainer");
+      container.innerHTML = "";
+
+      // 按出现次数归类
+      const groups = {};
+      for (let i = 1; i <= 49; i++) {
+        const k = pad2(i);
+        const count = fullFreqMap[k];
+        if (!groups[count]) groups[count] = [];
+        groups[count].push(k);
+      }
+
+      // 获取所有存在的出现频次，升序排列
+      const counts = Object.keys(groups).map(Number).sort((a, b) => a - b);
+
+      counts.forEach(count => {
+        const list = groups[count];
+        if (!list || list.length === 0) return;
+
+        // 标签：L (最低)、H (最高)
+        let tag = "";
+        if (count === minCount && minCount !== maxCount) {
+          tag = `<span class="text-sky-400 font-bold mr-1">L</span>`;
+        } else if (count === maxCount && maxCount !== 0) {
+          tag = `<span class="text-rose-400 font-bold mr-1">H</span>`;
+        }
+
+        const numbersStr = list.join(" ");
+
+        const row = document.createElement("div");
+        row.className = "flex flex-col sm:flex-row sm:items-center justify-between bg-[#202228] hover:bg-[#252830] transition p-2.5 rounded-lg border border-[#2f333e] gap-2";
+        row.innerHTML = `
+          <div class="leading-relaxed">
+            ${tag}<span class="text-gray-200 font-bold">${count} 次</span>
+            <span class="text-amber-400 font-semibold">(${list.length}个)</span>:
+            <span class="text-gray-300 font-mono tracking-wider ml-1 text-xs sm:text-sm select-text">${numbersStr}</span>
+          </div>
+          <button data-copy="${numbersStr}" 
+            class="group-copy-btn self-end sm:self-center bg-[#319795]/30 hover:bg-[#319795] text-cyan-200 hover:text-white px-3 py-1 rounded-md text-xs font-medium border border-teal-500/40 transition">
+            复制
+          </button>
+        `;
+
+        // 绑定单个复制事件
+        row.querySelector('.group-copy-btn').addEventListener('click', () => {
+          copyText(numbersStr);
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    // 复制全部出现次数的分组内容
+    function copyAllGroups() {
+      const container = document.getElementById("freqGroupContainer");
+      const rows = container.children;
+      if (rows.length === 0) {
+        showToast("暂无可复制的内容");
+        return;
+      }
+      let combined = [];
+      for (let row of rows) {
+        const textElem = row.querySelector("div");
+        if (textElem) {
+          combined.push(textElem.innerText.replace(/\s+/g, ' ').trim());
+        }
+      }
+      copyText(combined.join("\n"));
+    }
+
+    // 渲染生肖统计徽章
+    function renderZodiacStats(freqMap) {
+      const container = document.getElementById("zodiacContainer");
+      container.innerHTML = "";
+
+      const currentMap = ZODIAC_MAPS[currentRule] || ZODIAC_MAPS.xinAo;
+      const zodiacCounts = [];
+
+      for (const [zodiac, nums] of Object.entries(currentMap)) {
+        let total = 0;
+        nums.forEach(n => {
+          total += (freqMap[n] || 0);
+        });
+        zodiacCounts.push({ zodiac, count: total });
+      }
+
+      // 按出现次数降序排列展示
+      zodiacCounts.sort((a, b) => b.count - a.count);
+
+      zodiacCounts.forEach((item, idx) => {
+        const el = document.createElement("div");
+        
+        // 前几名或有值的生肖色彩高亮区分
+        let colorClass = "text-gray-300";
+        if (item.count >= 4) {
+          colorClass = "text-rose-400 font-bold";
+        } else if (item.count >= 2) {
+          colorClass = "text-yellow-400 font-bold";
+        } else if (item.count === 1) {
+          colorClass = "text-emerald-400";
+        } else {
+          colorClass = "text-gray-400";
+        }
+
+        el.className = `bg-[#242730] border border-[#323642] px-2.5 py-1 rounded-lg text-xs flex items-center space-x-1.5 shadow-sm`;
+        el.innerHTML = `
+          <span class="text-white font-medium">${item.zodiac}</span>
+          <span class="${colorClass}">${item.count}</span>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 工具按钮处理函数
+    // -------------------------------------------------------------
+    function handleShuffle() {
+      const nums = getParsedNumbers();
+      for (let i = nums.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [nums[i], nums[j]] = [nums[j], nums[i]];
+      }
+      document.getElementById("numInput").value = nums.join(" ");
+      recalculate();
+    }
+
+    function handleDeduplicate() {
+      const nums = getParsedNumbers();
+      const unique = Array.from(new Set(nums));
+      document.getElementById("numInput").value = unique.join(" ");
+      recalculate();
+    }
+
+    function handleSort() {
+      const nums = getParsedNumbers();
+      nums.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+      document.getElementById("numInput").value = nums.join(" ");
+      recalculate();
+    }
+
+    function handleCopyInput() {
+      const text = document.getElementById("numInput").value.trim();
+      copyText(text);
+    }
+
+    function handleClear() {
+      document.getElementById("numInput").value = "";
+      recalculate();
+    }
+
+    // 规则模式切换
+    function setRule(rule) {
+      currentRule = rule;
+      document.querySelectorAll(".rule-btn").forEach(btn => {
+        btn.classList.remove("bg-[#319795]", "text-white", "shadow-md");
+        btn.classList.add("bg-[#2a2d36]", "text-gray-300");
+      });
+      const activeBtn = document.getElementById(`btn-${rule}`);
+      if (activeBtn) {
+        activeBtn.classList.add("bg-[#319795]", "text-white", "shadow-md");
+        activeBtn.classList.remove("bg-[#2a2d36]", "text-gray-300");
+      }
+      recalculate();
+    }
+
+    // 监听输入自动刷新统计
+    document.getElementById("numInput").addEventListener("input", recalculate);
+
+    // 页面初始化
+    window.onload = function() {
+      setRule('xinAo');
+      recalculate();
+    };
+  </script>
+</body>
+</html>
